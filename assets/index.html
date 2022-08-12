@@ -1,0 +1,141 @@
+<html lang="zh">
+<head>
+    <title>
+        汉化者
+    </title>
+    <style>
+        .block {
+            width: 90%;
+            margin: 20px;
+            border-radius: 5px;
+            border: 1px solid rgba(200, 200, 200, 0.5);
+            box-shadow: 1px 1px 5px rgba(200, 200, 200, 0.2);
+            color: rgb(60, 60, 60);
+        }
+
+        .block div {
+            margin: 20px;
+        }
+
+        .block label {
+            width: 100px;
+        }
+
+        .meta {
+            margin: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid rgba(200, 200, 200, 0.5);
+            box-shadow: 1px 1px 5px rgba(200, 200, 200, 0.2);
+        }
+    </style>
+</head>
+<body>
+<div id="upload" class="block">
+    <form action="/upload" enctype="multipart/form-data" method="post">
+        <div><h3>上传一个汉化包</h3></div>
+        <div><label for="mod_name">mod名：</label><input type="text" name="mod_name" id="mod_name" required></div>
+        <div>
+            <label for="display_name">名称：</label><input type="text" name="display_name" id="display_name" required>
+        </div>
+        <div><label for="author">作者：</label><input type="text" name="author" id="author" required></div>
+        <div>
+            <label for="description">描述：</label><textarea name="description" id="description" required></textarea>
+        </div>
+        <div><label for="culture">语种：</label><input type="text" name="culture" id="culture" required></div>
+        <div><label for="version">版本号：</label><input type="text" name="version" id="version" required></div>
+        <div>
+            <label for="filename">文件重命名（如不指定，则使用上传的文件名）：</label><input type="text" id="filename">
+        </div>
+        <div><label for="file">上传文件：</label><input type="file" name="file" id="file"></div>
+        <div>
+            <input type="submit" value="上传"/>
+        </div>
+    </form>
+</div>
+
+<div id="list" class="block">
+    <div>
+        <h3>列出某个mod汉化包（填入*代表列出所有mod的汉化包）</h3>
+    </div>
+    <form action="/list" onsubmit="return list()">
+        <div><label for="list_mod_name">mod名：</label><input type="text" name="mod" id="list_mod_name">
+        </div>
+        <div>
+            <input type="submit">
+        </div>
+    </form>
+    <div id="metas">
+
+    </div>
+</div>
+<script>
+    function upload() {
+        if (document.getElementById("file").files && document.getElementById("file").files[0]) {
+            let file = document.getElementById("file").files[0]
+            let filename = document.getElementById("filename").value
+            console.log(file)
+            if (!filename) {
+                filename = file.name
+            }
+            fetch('/upload',
+                {
+                    method: 'post',
+                    headers: {
+                        'mod_name': document.getElementById("mod_name").value,
+                        'author': document.getElementById("author").value,
+                        'description': document.getElementById("mod_name").value,
+                        'display_name': document.getElementById("display_name").value,
+                        'culture': document.getElementById("culture").value,
+                        'version': document.getElementById("version").value,
+                        'filename': filename,
+                    },
+                    body: file
+                }
+            ).then(async resp => {
+                console.log(resp)
+                let body = await resp.text()
+                if (resp.status !== 200) {
+                    alert(resp.status + ':' + body)
+                } else {
+                    alert("上传成功")
+                }
+            })
+        }
+    }
+
+    function list() {
+        if (document.getElementById("list_mod_name").value) {
+            fetch('/list?mod=' + document.getElementById("list_mod_name").value).then(async resp => {
+                console.log(resp)
+                if (resp.status !== 200) {
+                    let body = await resp.text()
+                    alert(resp.status + ':' + body)
+                } else {
+                    let metas = await resp.json()
+                    document.getElementById("metas").innerHTML = '';
+                    for (let meta of metas) {
+                        document.getElementById("metas").insertAdjacentHTML('beforeend', `
+                        <div class=meta>
+                            <p>
+                                <span>mod名：${meta.mod_name}</span>
+                                <span>名称：${meta.display_name}</span>
+                                <span>作者：${meta.author}</span>
+                            </p>
+                            <p>描述：${meta.description}</p>
+                            <p>
+                                <span>语种：${meta.culture}</span>
+                                <span>版本号：${meta.version}</span>
+                            </p>
+                             <span> 下载：<a href="/download?file=${meta.filename}" download="${meta.filename}">${meta.filename}</a></span>
+                        </div>
+                        `)
+                    }
+                }
+            })
+        }
+        return false
+    }
+</script>
+</body>
+</html>
